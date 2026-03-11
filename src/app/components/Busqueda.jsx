@@ -27,7 +27,7 @@ export function Busqueda({ setCargando, setCanciones, cargarDatos }) {
         }
     },[busqueda])
     return (
-        <div className="flex">
+        <div className="flex ">
             <input
                 type="text"
                 onChange={(e) => setBusqueda(e.currentTarget.value)}

@@ -12,9 +12,8 @@ export default function Home() {
 
   const [cargando, setCargando] = useState(false);
 
-  const[cargandoCancion, setCargandoCancion] = useState(false)
-
-  const audio = useRef();
+  const audioInicio = new Audio();
+  const audio = useRef(audioInicio);
 
     async function cargarDatos() {
       setCargando(true);
@@ -43,7 +42,6 @@ export default function Home() {
 
 
   const reproducir = async (id) => {
-    setCargandoCancion(true)
     const headers = {
       Accept: "application/json",
     };
@@ -58,22 +56,13 @@ export default function Home() {
 
     setReproduccion(reproduccionData);
 
-    
-    const url = data.data.stream.url;
-
-    
-    if(audio.current){
-      if (audio.current.played && audio.current && !cargando) {
-        audio.current.pause();
-      }
+    if (audio.current.played && audio.current) {
+      audio.current.pause();
     }
 
-      audio.current = new Audio(url);
-      
-      await audio.current.play();
-      
-      setCargandoCancion(false)
-    
+    const url = await data.data.stream.url;
+    audio.current = new Audio(url);
+    audio.current.play();
   };
 
   return (
@@ -81,15 +70,6 @@ export default function Home() {
       <main className="flex min-h-screen w-full flex-row items-center justify-between bg-white dark:bg-black sm:items-start">
         <div className="w-1/3">
           {reproduccion ? (
-            cargandoCancion ? 
-              <Image
-                src={"/img/cargando.gif"}
-                width={100}
-                height={100}
-                alt="cargando"
-                className="invert"
-              />
-              :
             <div className="m-5">
               <Reproduccion cancion={reproduccion} audio={audio} />
             </div>
@@ -110,7 +90,7 @@ export default function Home() {
             cargarDatos={cargarDatos}
             ></Busqueda>
           </div>
-          <div className={`h-screen w-full overflow-auto ${cargandoCancion ? "pointer-events-none bg-black": ""}`}>
+          <div className="h-screen w-full overflow-auto ">
             {cargando ? (
               <Image
                 src={"/img/cargando.gif"}

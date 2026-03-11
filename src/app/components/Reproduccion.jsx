@@ -4,7 +4,6 @@ export function Reproduccion({ cancion, audio }) {
     const [tiempo, setTiempo] = useState(0)
     const [pausa, setPausa] = useState(false)
 
-
     const volumen = useRef(0.5)
 
     const play = () => {

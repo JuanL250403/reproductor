@@ -1,139 +1,115 @@
-import { act, useEffect, useRef, useState } from "react"
-import Image from "next/image";
-export function Reproduccion({ cancion, audio }) {
+import { useEffect, useRef, useState } from "react"
+
+export function Reproduccion({ cancion, audio, siguiente, anterior }) {
     const [tiempo, setTiempo] = useState(0)
     const [pausa, setPausa] = useState(false)
+    const [nivelVolumen, setNivelVolumen] = useState(0.5)
+    const volumenRef = useRef(0.5)
 
-    const volumen = useRef(0.5)
+    const play = () => { setPausa(false); audio.current.play(); };
+    const pause = () => { setPausa(true); audio.current.pause(); };
 
-    const play = () => {
-        setPausa(false)
-        audio.current.play()
-    };
-
-    const pause = () => {
-        setPausa(true)
-        audio.current.pause()
-    };
     useEffect(() => {
         const interval = setInterval(() => {
-            if (parseInt(audio.current.currentTime) == cancion.duration) {
-                pause()
-                setTiempo(0)
+            if (audio.current && !pausa) {
+                setTiempo(audio.current.currentTime);
+                if (Math.floor(audio.current.currentTime) >= cancion.duration) {
+                    siguiente(); // Salta a la siguiente automáticamente al terminar
+                }
             }
-
-            if (pausa) {
-                clearInterval(interval)
-            }
-
-            setTiempo(audio.current.currentTime)
-
         }, 1000);
-        return () => {
-            clearInterval(interval)
-        }
-    }, [pausa])
+        return () => clearInterval(interval)
+    }, [pausa, cancion.duration, siguiente])
 
     useEffect(() => {
-        setTiempo(0)
-        setPausa(false)
-    }, [audio.current.src])
+        setTiempo(0);
+        setPausa(false);
+        if (audio.current) audio.current.volume = volumenRef.current;
+    }, [cancion.track_id])
 
-    useEffect(() => {
-        audio.current.volume = volumen.current;
-    }, [audio.current.src])
-    const actualizar = (valor) => {
-        setTiempo(valor)
-        audio.current.currentTime = valor
+    const actualizarTiempo = (valor) => {
+        setTiempo(valor);
+        if (audio.current) audio.current.currentTime = valor;
     }
 
     const cambiarVolumen = (value) => {
-        volumen.current = value
-        audio.current.volume = value
+        const nuevoVolumen = parseFloat(value);
+        volumenRef.current = nuevoVolumen;
+        setNivelVolumen(nuevoVolumen);
+        if (audio.current) audio.current.volume = nuevoVolumen;
     }
+
     return (
-        <div className="flex flex-col justify-between h-[95%] bg-gradient-to-br from-gray-900 to-gray-800 backdrop-blur-lg border border-white/10 rounded-2xl p-4 shadow-2xl">
-
-            <div className="flex flex-col justify-between items-center w-full m-2">
-                <img src={cancion.artwork["480x480"]}
-                    width={200}
-                    height={150}
-                    loading="lazy"
-                    alt="portada"
-                    className="rounded-2xl" />
-
+        <div className="flex flex-col justify-between min-h-fit bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 shadow-2xl">
+            
+            <div className="relative group w-full aspect-square flex items-center justify-center mb-4">
+                <img src={cancion.artwork["480x480"]} alt="portada" className="rounded-2xl w-full h-full object-cover shadow-2xl" />
             </div>
-            <div className="">
-                <h1 className="text-white font-semibold text-lg tracking-wide">
-                    {cancion.title}
-                </h1>
-                <p className="text-gray-400 text-sm">
-                    {cancion.user.name}
-                </p>
-                <div className="flex items-center">
-                    <input
-                        type="range"
-                        max={cancion.duration}
-                        value={tiempo}
-                        onChange={(e) => actualizar(e.currentTarget.value)}
-                        className="w-full mr-2 h-2 bg-white/30 rounded-full appearance-none cursor-pointer accent-orange-400 hover:accent-gray-200 transition-all"
-                    />
-                    <h1 className="m-1 w-15 text-white font-mono text-sm text-right">
-                        {parseInt(tiempo / 3600) + ":" + parseInt(tiempo / 60) + ":" + parseInt(tiempo % 60)}
-                    </h1>
+
+            <div className="space-y-0.5 mb-3">
+                <h1 className="text-white font-bold text-xl truncate">{cancion.title}</h1>
+                <p className="text-zinc-400 text-xs">{cancion.user.name}</p>
+            </div>
+
+            <div className="space-y-1 mb-3">
+                <input
+                    type="range"
+                    max={cancion.duration}
+                    value={tiempo}
+                    onChange={(e) => actualizarTiempo(e.currentTarget.value)}
+                    className="w-full h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-white"
+                />
+                <div className="flex justify-between text-[9px] font-mono text-zinc-500 uppercase">
+                    <span>{parseInt(tiempo / 60)}:{String(parseInt(tiempo % 60)).padStart(2, '0')}</span>
+                    <span>{parseInt(cancion.duration / 60)}:{String(parseInt(cancion.duration % 60)).padStart(2, '0')}</span>
                 </div>
             </div>
-            <div className="flex flex-col justify-between h-[30%] items-center">
 
-                <div className="flex justify-center ">
-                    {
-                        pausa ?
-                            <button
-                                onClick={() => play()}
-                                className="flex items-center justify-center w-26 h-26 bg-white rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95 hover:bg-gray-200"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                    className="w-[70%] h-[70%] text-black"
-                                >
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                            </button>
-                            :
-                            <button
-                                onClick={() => pause()}
-                                className="flex items-center justify-center w-26 h-26 bg-white rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95 hover:bg-gray-200"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                    className="w-[70%] h-[70%] text-black"
-                                >
-                                    <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
-                                </svg>
-                            </button>
-                    }
+            {/* CONTROLES DE NAVEGACIÓN */}
+            <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-6">
+                    {/* BOTÓN ANTERIOR */}
+                    <button onClick={anterior} className="text-zinc-400 hover:text-white transition-colors">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                        </svg>
+                    </button>
+
+                    {/* BOTÓN PLAY/PAUSE */}
+                    <button
+                        onClick={() => (pausa ? play() : pause())}
+                        className="flex items-center justify-center w-14 h-14 bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-all"
+                    >
+                        {pausa ? (
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 ml-0.5"><path d="M8 5v14l11-7z" /></svg>
+                        ) : (
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path d="M6 5h4v14H6zm8 0h4v14h-4z" /></svg>
+                        )}
+                    </button>
+
+                    {/* BOTÓN SIGUIENTE */}
+                    <button onClick={siguiente} className="text-zinc-400 hover:text-white transition-colors">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6z"/>
+                        </svg>
+                    </button>
                 </div>
-                <div className="m-5 h-[30%] flex w-full flex-row items-center justify-between">
+
+                {/* VOLUMEN */}
+                <div className="w-full bg-black/30 p-3 rounded-xl border border-white/5">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] font-mono text-zinc-500 tracking-widest">VOLUME</span>
+                        <span className="text-[9px] font-mono text-zinc-300">{Math.round(nivelVolumen * 100)}%</span>
+                    </div>
                     <input
                         type="range"
                         max={1}
                         step={0.01}
+                        value={nivelVolumen}
                         onChange={(e) => cambiarVolumen(e.currentTarget.value)}
-                        className="h-10 w-full p-2 bg-white/30 rounded-full appearance-none cursor-pointer accent-orange-400 hover:accent-gray-200 transition"
+                        className="w-full h-1 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-orange-400"
                     />
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="w-10 h-10 m-2 text-white">
-                        <path d="M3 10v4h4l5 5V5L7 10H3z" />
-                        <path d="M16 7.82v8.36c1.48-.68 2.5-2.16 2.5-4.18s-1.02-3.5-2.5-4.18z" />
-                    </svg>
                 </div>
-
             </div>
         </div>
     )
